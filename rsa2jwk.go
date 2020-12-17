@@ -54,8 +54,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	jwkPrivSet := map[string][]jwkPrivAndPubKeyPair{"keys": []jwkPrivAndPubKeyPair{}}
-	jwkPubSet := map[string][]jwkPubKey{"keys": []jwkPubKey{}}
+	jwkPrivSet := map[string][]jwkPrivAndPubKeyPair{"keys": {}}
+	jwkPubSet := map[string][]jwkPubKey{"keys": {}}
 	for _, f := range filePaths {
 		privKey, err := parseRSAPrivateKeyFromPEM(f)
 		if err != nil {
