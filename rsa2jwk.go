@@ -17,6 +17,12 @@ import (
 )
 
 const fileExtension = ".pem"
+const jsonJwkPrivFilename = "rsa2jwk_jwkPrivate.json"
+const jsonJwkPubFilename = "rsa2jwk_jwkPublic.json"
+
+const jwkKtyRsa = "RSA"
+const jwkAlgRs256 = "RS256"
+const jwkUseSig = "sig"
 
 type jwkPrivAndPubKeyPair struct {
 	jwkPubKey
@@ -39,7 +45,7 @@ type jwkPubKey struct {
 
 func main() {
 	if len(os.Args) != 2 {
-		log.Fatal("you should provide a path to directory where to lookup PEM files, e.g. './'")
+		log.Fatal("you should provide a path to a directory where to lookup PEM files, e.g. './'")
 	}
 	dir := os.Args[1]
 
@@ -68,9 +74,9 @@ func main() {
 		jwk.AssignKeyID(privJwk) //nolint:errcheck
 
 		jwkPub := jwkPubKey{
-			Kty: "RSA",
-			Alg: "RS256",
-			Use: "sig",
+			Kty: jwkKtyRsa,
+			Alg: jwkAlgRs256,
+			Use: jwkUseSig,
 			Kid: privJwk.KeyID(),
 			N:   safeEncode(pubKey.(*rsa.PublicKey).N.Bytes()),
 			E:   safeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()),
@@ -88,10 +94,11 @@ func main() {
 		jwkPubSet["keys"] = append(jwkPubSet["keys"], jwkPub)
 		fmt.Printf("Kid '%s' - file '%s'\n", jwkPub.Kid, f)
 	}
-	if err := marshalAndSave(jwkPrivSet, filepath.Join(dir, "jwkPrivate.json")); err != nil {
+
+	if err := marshalAndSave(jwkPrivSet, filepath.Join(dir, jsonJwkPrivFilename)); err != nil {
 		log.Fatal(err)
 	}
-	if err := marshalAndSave(jwkPubSet, filepath.Join(dir, "jwkPublic.json")); err != nil {
+	if err := marshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename)); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -101,7 +108,11 @@ func marshalAndSave(v interface{}, path string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, bytes, 0644)
+	err = ioutil.WriteFile(path, bytes, 0644)
+	if err == nil {
+		fmt.Printf("Created a file '%s'\n", path)
+	}
+	return err
 }
 
 // parsing a PEM encoded PKCS1 or PKCS8 private key
