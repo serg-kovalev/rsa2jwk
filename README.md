@@ -1,8 +1,17 @@
 # rsa2jwk
 
-Converts Single or Multiple RSA pem (PKCS1/PKCS8 serializaed as "AQAB") to JWK Private and Public sets (json files).
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/serg-kovalev/rsa2jwk/blob/main/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/serg-kovalev/rsa2jwk)](https://goreportcard.com/report/github.com/serg-kovalev/rsa2jwk)
+
+# Overview
+
+Converts Single or Multiple RSA pem (PKCS1/PKCS8 serialized as "AQAB") to JWK Private and Public sets (json files).
 
 RSA private key could be generated using openssl like `openssl genrsa -out private-key.pem 2048`
+
+# Download the latest release
+
+Please find the latest release [here](https://github.com/serg-kovalev/rsa2jwk/releases)
 
 ## Build
 
