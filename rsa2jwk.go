@@ -56,6 +56,7 @@ func main() {
 
 	jwkPrivSet := map[string][]jwkPrivAndPubKeyPair{"keys": {}}
 	jwkPubSet := map[string][]jwkPubKey{"keys": {}}
+	fmt.Printf("%43s\t%s\n", "Kid", "Filename")
 	for _, f := range filePaths {
 		privKey, err := parseRSAPrivateKeyFromPEM(f)
 		if err != nil {
@@ -92,7 +93,7 @@ func main() {
 		}
 		jwkPrivSet["keys"] = append(jwkPrivSet["keys"], jwkPriv)
 		jwkPubSet["keys"] = append(jwkPubSet["keys"], jwkPub)
-		fmt.Printf("Kid '%s' - file '%s'\n", jwkPub.Kid, f)
+		fmt.Printf("%s\t%s\n", jwkPub.Kid, f)
 	}
 
 	if err := marshalAndSave(jwkPrivSet, filepath.Join(dir, jsonJwkPrivFilename)); err != nil {
@@ -108,11 +109,7 @@ func marshalAndSave(v interface{}, path string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path, bytes, 0644)
-	if err == nil {
-		fmt.Printf("Created a file '%s'\n", path)
-	}
-	return err
+	return ioutil.WriteFile(path, bytes, 0644)
 }
 
 // parsing a PEM encoded PKCS1 or PKCS8 private key

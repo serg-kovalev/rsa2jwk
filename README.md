@@ -30,11 +30,24 @@ rsa2jwk path/to/folder_with_pem
 ```sh
 rsa2jwk tmp
 # Output:
-# Kid '5lUPIy6kHHaYBpTQscwg15UCR39O1zyWJG6neFG2bTk' - file 'tmp/test.pem'
+#                                        Kid	Filename
+#5lUPIy6kHHaYBpTQscwg15UCR39O1zyWJG6neFG2bTk	tmp/test.pem
 ```
 
+W/o headers:
+
 ```sh
-cat tmp/jwkPublic.json | jq
+rsa2jwk tmp | tail -n 1
+#5lUPIy6kHHaYBpTQscwg15UCR39O1zyWJG6neFG2bTk	tmp/test.pem
+```
+
+In the specified folder you will find two newly generated files:
+
+- `rsa2jwk_jwkPrivate.json`
+- `rsa2jwk_jwkPublic.json`
+
+```sh
+cat tmp/rsa2jwk_jwkPublic.json | jq
 ```
 
 Output:
