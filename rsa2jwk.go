@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	jwt "github.com/golang-jwt/jwt/v4"
-	jwk "github.com/lestrrat-go/jwx/jwk"
+	jwk "github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 const fileExtension = ".pem"
@@ -62,12 +62,9 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		pubKey, err := jwk.PublicKeyOf(privKey)
-		if err != nil {
-			log.Fatal(err)
-		}
+		pubKey := privKey.Public()
 
-		privJwk, err := jwk.New(privKey)
+		privJwk, err := jwk.FromRaw(privKey)
 		if err != nil {
 			log.Fatal(err)
 		}
