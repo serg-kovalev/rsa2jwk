@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
@@ -117,11 +116,11 @@ func marshalAndSave(v interface{}, path string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, bytes, 0644)
+	return os.WriteFile(path, bytes, 0644)
 }
 
 func lookupPemFiles(dirName string) ([]string, error) {
-	fileInfos, err := ioutil.ReadDir(dirName)
+	fileInfos, err := os.ReadDir(dirName)
 	if err != nil {
 		return nil, err
 	}
