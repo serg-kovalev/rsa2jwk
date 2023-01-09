@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -27,20 +26,8 @@ func TestRsaPemToJwk(t *testing.T) {
 		},
 	)
 
-	// Convert public key to PEM format
-	pubKeyPem, err := x509.MarshalPKIXPublicKey(pubKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubKeyPem = pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "RSA PUBLIC KEY",
-			Bytes: pubKeyPem,
-		},
-	)
-
 	// Write private key PEM to file
-	privKeyFile, err := ioutil.TempFile("", "rsa-priv-key-*.pem")
+	privKeyFile, err := os.CreateTemp("", "rsa-priv-key-*.pem")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,19 +36,6 @@ func TestRsaPemToJwk(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := privKeyFile.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Write public key PEM to file
-	pubKeyFile, err := ioutil.TempFile("", "rsa-pub-key-*.pem")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(pubKeyFile.Name())
-	if _, err := pubKeyFile.Write(pubKeyPem); err != nil {
-		t.Fatal(err)
-	}
-	if err := pubKeyFile.Close(); err != nil {
 		t.Fatal(err)
 	}
 
