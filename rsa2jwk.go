@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	jwk "github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 const fileExtension = ".pem"
@@ -41,41 +41,8 @@ type jwkPubKey struct {
 	N   string `json:"n"`
 }
 
-func main() {
-	if len(os.Args) != 2 {
-		log.Fatal("you should provide a path to a directory where to lookup PEM files, e.g. './'")
-	}
-	dir := os.Args[1]
-
-	filePaths, err := lookupPemFiles(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jwkPrivSet := map[string][]jwkPrivAndPubKeyPair{"keys": {}}
-	jwkPubSet := map[string][]jwkPubKey{"keys": {}}
-	fmt.Printf("%43s\t%s\n", "Kid", "Filename")
-	for _, f := range filePaths {
-		jwkPriv, err := rsaPemToJwk(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, jwkPrivAndPub := range jwkPriv {
-			jwkPrivSet["keys"] = append(jwkPrivSet["keys"], jwkPrivAndPub)
-			jwkPubSet["keys"] = append(jwkPubSet["keys"], jwkPrivAndPub.jwkPubKey)
-			fmt.Printf("%s\t%s\n", jwkPrivAndPub.jwkPubKey.Kid, f)
-		}
-	}
-
-	if err := marshalAndSave(jwkPrivSet, filepath.Join(dir, jsonJwkPrivFilename)); err != nil {
-		log.Fatal(err)
-	}
-	if err := marshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename)); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func rsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
+// RsaPemToJwk converts a PEM file containing an RSA key pair to a JWK private and public key pair.
+func RsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
 	jwkPrivSet := []jwkPrivAndPubKeyPair{}
 
 	jwkSet, err := jwk.ReadFile(path, jwk.WithPEM(true))
@@ -107,17 +74,17 @@ func rsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
 			Alg: jwkAlgRs256,
 			Use: jwkUseSig,
 			Kid: privJwk.KeyID(),
-			N:   safeEncode(pubKey.(*rsa.PublicKey).N.Bytes()),
-			E:   safeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()),
+			N:   SafeEncode(pubKey.(*rsa.PublicKey).N.Bytes()),
+			E:   SafeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()),
 		}
 		jwkPriv := jwkPrivAndPubKeyPair{
 			jwkPubKey: jwkPub,
-			P:         safeEncode(privKey.Primes[0].Bytes()),
-			Q:         safeEncode(privKey.Primes[1].Bytes()),
-			D:         safeEncode(privKey.D.Bytes()),
-			Qi:        safeEncode(privKey.Precomputed.Qinv.Bytes()),
-			Dp:        safeEncode(privKey.Precomputed.Dp.Bytes()),
-			Dq:        safeEncode(privKey.Precomputed.Dq.Bytes()),
+			P:         SafeEncode(privKey.Primes[0].Bytes()),
+			Q:         SafeEncode(privKey.Primes[1].Bytes()),
+			D:         SafeEncode(privKey.D.Bytes()),
+			Qi:        SafeEncode(privKey.Precomputed.Qinv.Bytes()),
+			Dp:        SafeEncode(privKey.Precomputed.Dp.Bytes()),
+			Dq:        SafeEncode(privKey.Precomputed.Dq.Bytes()),
 		}
 		jwkPrivSet = append(jwkPrivSet, jwkPriv)
 	}
@@ -125,35 +92,72 @@ func rsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
 	return jwkPrivSet, nil
 }
 
-func marshalAndSave(v interface{}, path string) error {
-	bytes, err := json.Marshal(v)
+// MarshalAndSave marshals the given data to JSON and saves it to the specified file.
+func MarshalAndSave(data interface{}, path string) error {
+	jsonData, err := json.MarshalIndent(data, "", " ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, bytes, 0644)
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(jsonData)
+	return err
 }
 
-func lookupPemFiles(dirName string) ([]string, error) {
-	fileInfos, err := os.ReadDir(dirName)
+// SafeEncode encodes the given data to a base64 string, with padding stripped.
+func SafeEncode(data []byte) string {
+	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
+}
+
+// LookupPemFiles looks up PEM files in the given directory and returns their paths.
+func LookupPemFiles(dir string) ([]string, error) {
+	filePaths := []string{}
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && filepath.Ext(path) == fileExtension {
+			filePaths = append(filePaths, path)
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	filenames := make([]string, 0)
-	for _, f := range fileInfos {
-		if f.IsDir() {
-			continue
-		}
-
-		filename := f.Name()
-		if strings.HasSuffix(filename, fileExtension) {
-			filenames = append(filenames, filepath.Join(dirName, filename))
-		}
-	}
-	return filenames, nil
+	return filePaths, nil
 }
 
-func safeEncode(p []byte) string {
-	data := base64.URLEncoding.EncodeToString(p)
-	return strings.TrimRight(data, "=")
+func main() {
+	if len(os.Args) != 2 {
+		log.Fatal("you should provide a path to a directory where to lookup PEM files, e.g. './'")
+	}
+	dir := os.Args[1]
+	filePaths, err := LookupPemFiles(dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	jwkPrivSet := map[string][]jwkPrivAndPubKeyPair{"keys": {}}
+	jwkPubSet := map[string][]jwkPubKey{"keys": {}}
+	fmt.Printf("%43s\t%s\n", "Kid", "Filename")
+	for _, f := range filePaths {
+		jwkPriv, err := RsaPemToJwk(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, jwkPrivAndPub := range jwkPriv {
+			jwkPrivSet["keys"] = append(jwkPrivSet["keys"], jwkPrivAndPub)
+			jwkPubSet["keys"] = append(jwkPubSet["keys"], jwkPrivAndPub.jwkPubKey)
+			fmt.Printf("%s\t%s\n", jwkPrivAndPub.jwkPubKey.Kid, f)
+		}
+	}
+	if err := MarshalAndSave(jwkPrivSet, filepath.Join(dir, jsonJwkPrivFilename)); err != nil {
+		log.Fatal(err)
+	}
+	if err := MarshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename)); err != nil {
+		log.Fatal(err)
+	}
 }

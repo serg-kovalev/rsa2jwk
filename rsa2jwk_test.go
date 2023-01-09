@@ -44,7 +44,7 @@ func TestRsaPemToJwk(t *testing.T) {
 	}
 
 	// Convert private key PEM file to JWK
-	jwkPriv, err := rsaPemToJwk(privKeyFile.Name())
+	jwkPriv, err := RsaPemToJwk(privKeyFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,11 +62,11 @@ func TestRsaPemToJwk(t *testing.T) {
 	if jwkPriv[0].Alg != jwkAlgRs256 {
 		t.Errorf("unexpected JWK public key algorithm: got %s, want %s", jwkPriv[0].Alg, jwkAlgRs256)
 	}
-	if jwkPriv[0].N != safeEncode(pubKey.(*rsa.PublicKey).N.Bytes()) {
-		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[0].N, safeEncode(pubKey.(*rsa.PublicKey).N.Bytes()))
+	if jwkPriv[0].N != SafeEncode(pubKey.(*rsa.PublicKey).N.Bytes()) {
+		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[0].N, SafeEncode(pubKey.(*rsa.PublicKey).N.Bytes()))
 	}
-	if jwkPriv[0].E != safeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()) {
-		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[0].E, safeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()))
+	if jwkPriv[0].E != SafeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()) {
+		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[0].E, SafeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()))
 	}
 }
 
@@ -85,7 +85,7 @@ func TestRsaPemToJwk_InvalidPemFile(t *testing.T) {
 	}
 
 	// Ensure that an error is returned when given an invalid PEM file
-	if _, err := rsaPemToJwk(invalidPemFile.Name()); err == nil {
+	if _, err := RsaPemToJwk(invalidPemFile.Name()); err == nil {
 		t.Error("expected error when given invalid PEM file, got nil")
 	}
 }
@@ -134,29 +134,29 @@ func TestRsaPemToJwk_MultipleKeysInPemFile(t *testing.T) {
 	}
 
 	// Convert private keys PEM file to JWK
-	jwkPriv, err := rsaPemToJwk(keysFile.Name())
+	jwkPriv, err := RsaPemToJwk(keysFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Check that JWK private keys contain expected values
-	if jwkPriv[0].N != safeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()) {
-		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[0].N, safeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()))
+	if jwkPriv[0].N != SafeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()) {
+		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[0].N, SafeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()))
 	}
-	if jwkPriv[0].E != safeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()) {
-		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[0].E, safeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()))
+	if jwkPriv[0].E != SafeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()) {
+		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[0].E, SafeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()))
 	}
-	if jwkPriv[1].N != safeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()) {
-		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[1].N, safeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()))
+	if jwkPriv[1].N != SafeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()) {
+		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[1].N, SafeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()))
 	}
-	if jwkPriv[1].E != safeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()) {
-		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[1].E, safeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()))
+	if jwkPriv[1].E != SafeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()) {
+		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[1].E, SafeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()))
 	}
 }
 
 func TestRsaPemToJwk_NonExistentPemFile(t *testing.T) {
 	// Ensure that an error is returned when given a non-existent PEM file
-	if _, err := rsaPemToJwk("non-existent-file.pem"); err == nil {
+	if _, err := RsaPemToJwk("non-existent-file.pem"); err == nil {
 		t.Error("expected error when given non-existent PEM file, got nil")
 	}
 }
@@ -176,7 +176,7 @@ func TestRsaPemToJwk_NonPemFile(t *testing.T) {
 	}
 
 	// Ensure that an error is returned when given a non-PEM file
-	if _, err := rsaPemToJwk(nonPemFile.Name()); err == nil {
+	if _, err := RsaPemToJwk(nonPemFile.Name()); err == nil {
 		t.Error("expected error when given non-PEM file, got nil")
 	}
 }
@@ -228,7 +228,7 @@ func TestRsaPemToJwk_MultipleKeysPemFile(t *testing.T) {
 	}
 
 	// Convert private keys PEM file to JWK
-	jwkPriv, err := rsaPemToJwk(privKeysPemFile.Name())
+	jwkPriv, err := RsaPemToJwk(privKeysPemFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,11 +249,11 @@ func TestRsaPemToJwk_MultipleKeysPemFile(t *testing.T) {
 	if jwkPriv[0].Alg != jwkAlgRs256 {
 		t.Errorf("unexpected JWK public key algorithm: got %s, want %s", jwkPriv[0].Alg, jwkAlgRs256)
 	}
-	if jwkPriv[0].N != safeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()) {
-		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[0].N, safeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()))
+	if jwkPriv[0].N != SafeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()) {
+		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[0].N, SafeEncode(pubKey1.(*rsa.PublicKey).N.Bytes()))
 	}
-	if jwkPriv[0].E != safeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()) {
-		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[0].E, safeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()))
+	if jwkPriv[0].E != SafeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()) {
+		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[0].E, SafeEncode(big.NewInt(int64(pubKey1.(*rsa.PublicKey).E)).Bytes()))
 	}
 	if jwkPriv[1].Kty != jwkKtyRsa {
 		t.Errorf("unexpected JWK public key use: got %s, want %s", jwkPriv[1].Use, jwkUseSig)
@@ -261,16 +261,16 @@ func TestRsaPemToJwk_MultipleKeysPemFile(t *testing.T) {
 	if jwkPriv[1].Alg != jwkAlgRs256 {
 		t.Errorf("unexpected JWK public key algorithm: got %s, want %s", jwkPriv[1].Alg, jwkAlgRs256)
 	}
-	if jwkPriv[1].N != safeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()) {
-		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[1].N, safeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()))
+	if jwkPriv[1].N != SafeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()) {
+		t.Errorf("unexpected JWK public key N: got %s, want %s", jwkPriv[1].N, SafeEncode(pubKey2.(*rsa.PublicKey).N.Bytes()))
 	}
-	if jwkPriv[1].E != safeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()) {
-		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[1].E, safeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()))
+	if jwkPriv[1].E != SafeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()) {
+		t.Errorf("unexpected JWK public key E: got %s, want %s", jwkPriv[1].E, SafeEncode(big.NewInt(int64(pubKey2.(*rsa.PublicKey).E)).Bytes()))
 	}
 }
 
 func TestRsaPemToJwk_NonExistentFile(t *testing.T) {
-	if _, err := rsaPemToJwk("non-existent-file.pem"); err == nil {
+	if _, err := RsaPemToJwk("non-existent-file.pem"); err == nil {
 		t.Error("expected error when given non-existent file, got nil")
 	}
 }
@@ -288,7 +288,7 @@ func TestMarshalAndSave(t *testing.T) {
 
 	// Marshal and save data to a file in the temporary directory
 	filePath := filepath.Join(tempDir, "test-file.json")
-	if err := marshalAndSave(data, filePath); err != nil {
+	if err := MarshalAndSave(data, filePath); err != nil {
 		t.Fatal(err)
 	}
 
@@ -332,7 +332,7 @@ func TestLookupPemFiles(t *testing.T) {
 	}
 
 	// Look up PEM files in the temporary directory
-	filePaths, err := lookupPemFiles(tempDir)
+	filePaths, err := LookupPemFiles(tempDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +367,7 @@ func TestSafeEncode(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := safeEncode(test.input)
+			result := SafeEncode(test.input)
 			if result != test.output {
 				t.Errorf("unexpected result: got %s, want %s", result, test.output)
 			}
