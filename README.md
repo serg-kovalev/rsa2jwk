@@ -21,13 +21,13 @@ Please find the latest release [here](https://github.com/serg-kovalev/rsa2jwk/re
 go build
 ```
 
-## Usage
+## CLI Usage
 
 ```sh
 rsa2jwk path/to/folder_with_pem
 ```
 
-## Example
+## CLI Usage Example
 
 ```sh
 rsa2jwk tmp
@@ -66,5 +66,30 @@ Output:
       "n": "16ClrRqxEX_73X0VTzOmoGpuOnNqHb425CyyAaoAWcoqMR1sFNOnrPeEzhRbJfDJ5SIQLCUzLIwxsWtiDxZnHS7D9BahtXCBwfokXkAZFDcyJPxEluV1I5VHyl-3uDuoLll2EkBd3v5AfXjwdPDmvVr9ugV52u5VSGr-j630dtzpc47QB9EgGN_RlQGGPQusJ3uEFy0k3ivDgsFbmZCUdfZFNfm30NjxIwBIzeTdWKdsSrwok7rla1TuveuaUjt-HBjImHHH47ocJq78OlAdJh5Mh2BRBHRwWvIJIChQ-MK-jJoef1u0Su15U4CsfWk7Dw7XbBOw9jdyOjuNNO50Dw"
     }
   ]
+}
+```
+
+## Package
+
+To use this program as a package, you can simply import it into another Go file and call the functions in the same way they are called in the main function. For example:
+
+```go
+import "github.com/serg-kovalev/rsa2jwk"
+
+// ...
+
+filePaths, err := rsa2jwk.LookupPemFiles(dir)
+if err != nil {
+	log.Fatal(err)
+}
+
+jwkPriv, err := rsa2jwk.RsaPemToJwk(filePaths[0])
+if err != nil {
+	log.Fatal(err)
+}
+
+err = rsa2jwk.MarshalAndSave(jwkPriv, "jwk.json")
+if err != nil {
+	log.Fatal(err)
 }
 ```
