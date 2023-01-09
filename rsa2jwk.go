@@ -56,50 +56,14 @@ func main() {
 	jwkPubSet := map[string][]jwkPubKey{"keys": {}}
 	fmt.Printf("%43s\t%s\n", "Kid", "Filename")
 	for _, f := range filePaths {
-		jwkSet, err := jwk.ReadFile(f, jwk.WithPEM(true))
+		jwkPriv, err := rsaPemToJwk(f)
 		if err != nil {
 			log.Fatal(err)
 		}
-		for i := 0; i < jwkSet.Len(); i++ {
-			var rawKey interface{}
-			jwkKey, _ := jwkSet.Key(i)
-			err = jwkKey.Raw(&rawKey)
-			if err != nil {
-				log.Fatal(err)
-			}
-			privKey, ok := rawKey.(*rsa.PrivateKey)
-			if !ok {
-				log.Fatal("provided key is not private one")
-			}
-			pubKey := privKey.Public()
-
-			privJwk, err := jwk.FromRaw(privKey)
-			if err != nil {
-				log.Fatal(err)
-			}
-			// generates Kid using Key.Thumbprint method with crypto.SHA256
-			jwk.AssignKeyID(privJwk) //nolint:errcheck
-
-			jwkPub := jwkPubKey{
-				Kty: jwkKtyRsa,
-				Alg: jwkAlgRs256,
-				Use: jwkUseSig,
-				Kid: privJwk.KeyID(),
-				N:   safeEncode(pubKey.(*rsa.PublicKey).N.Bytes()),
-				E:   safeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()),
-			}
-			jwkPriv := jwkPrivAndPubKeyPair{
-				jwkPubKey: jwkPub,
-				P:         safeEncode(privKey.Primes[0].Bytes()),
-				Q:         safeEncode(privKey.Primes[1].Bytes()),
-				D:         safeEncode(privKey.D.Bytes()),
-				Qi:        safeEncode(privKey.Precomputed.Qinv.Bytes()),
-				Dp:        safeEncode(privKey.Precomputed.Dp.Bytes()),
-				Dq:        safeEncode(privKey.Precomputed.Dq.Bytes()),
-			}
-			jwkPrivSet["keys"] = append(jwkPrivSet["keys"], jwkPriv)
-			jwkPubSet["keys"] = append(jwkPubSet["keys"], jwkPub)
-			fmt.Printf("%s\t%s\n", jwkPub.Kid, f)
+		for _, jwkPrivAndPub := range jwkPriv {
+			jwkPrivSet["keys"] = append(jwkPrivSet["keys"], jwkPrivAndPub)
+			jwkPubSet["keys"] = append(jwkPubSet["keys"], jwkPrivAndPub.jwkPubKey)
+			fmt.Printf("%s\t%s\n", jwkPrivAndPub.jwkPubKey.Kid, f)
 		}
 	}
 
@@ -109,6 +73,56 @@ func main() {
 	if err := marshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename)); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func rsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
+	jwkPrivSet := []jwkPrivAndPubKeyPair{}
+
+	jwkSet, err := jwk.ReadFile(path, jwk.WithPEM(true))
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < jwkSet.Len(); i++ {
+		var rawKey interface{}
+		jwkKey, _ := jwkSet.Key(i)
+		err = jwkKey.Raw(&rawKey)
+		if err != nil {
+			return nil, err
+		}
+		privKey, ok := rawKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, err
+		}
+		pubKey := privKey.Public()
+
+		privJwk, err := jwk.FromRaw(privKey)
+		if err != nil {
+			return nil, err
+		}
+		// generates Kid using Key.Thumbprint method with crypto.SHA256
+		jwk.AssignKeyID(privJwk) //nolint:errcheck
+
+		jwkPub := jwkPubKey{
+			Kty: jwkKtyRsa,
+			Alg: jwkAlgRs256,
+			Use: jwkUseSig,
+			Kid: privJwk.KeyID(),
+			N:   safeEncode(pubKey.(*rsa.PublicKey).N.Bytes()),
+			E:   safeEncode(big.NewInt(int64(pubKey.(*rsa.PublicKey).E)).Bytes()),
+		}
+		jwkPriv := jwkPrivAndPubKeyPair{
+			jwkPubKey: jwkPub,
+			P:         safeEncode(privKey.Primes[0].Bytes()),
+			Q:         safeEncode(privKey.Primes[1].Bytes()),
+			D:         safeEncode(privKey.D.Bytes()),
+			Qi:        safeEncode(privKey.Precomputed.Qinv.Bytes()),
+			Dp:        safeEncode(privKey.Precomputed.Dp.Bytes()),
+			Dq:        safeEncode(privKey.Precomputed.Dq.Bytes()),
+		}
+		jwkPrivSet = append(jwkPrivSet, jwkPriv)
+	}
+
+	return jwkPrivSet, nil
 }
 
 func marshalAndSave(v interface{}, path string) error {
