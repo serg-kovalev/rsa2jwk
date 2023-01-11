@@ -4,6 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/serg-kovalev/rsa2jwk)](https://goreportcard.com/report/github.com/serg-kovalev/rsa2jwk)
 [![CI](https://github.com/serg-kovalev/rsa2jwk/actions/workflows/ci.yml/badge.svg?query=branch%3Amaster+event%3Apush)](https://github.com/serg-kovalev/rsa2jwk/actions/workflows/ci.yml?query=branch%3Amaster+event%3Apush)
 [![CodeQL](https://github.com/serg-kovalev/rsa2jwk/actions/workflows/codeql-analysis.yml/badge.svg?query=branch%3Amaster+event%3Apush)](https://github.com/serg-kovalev/rsa2jwk/actions/workflows/codeql-analysis.yml?query=branch%3Amaster+event%3Apush)
+[![Maintainability](https://api.codeclimate.com/v1/badges/c5a82c115d4415d97ef1/maintainability)](https://codeclimate.com/github/serg-kovalev/rsa2jwk/maintainability)
 
 # Overview
 
