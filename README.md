@@ -95,3 +95,11 @@ if err != nil {
 	log.Fatal(err)
 }
 ```
+
+## Contributing
+
+[Contributing](./CONTRIBUTING.md)
+
+## Code of Conduct
+
+[Code of Conduct](./CODE_OF_CONDUCT.md)
