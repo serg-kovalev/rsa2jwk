@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -44,7 +45,7 @@ func TestRsaPemToJwk(t *testing.T) {
 	}
 
 	// Convert private key PEM file to JWK
-	jwkPriv, err := RsaPemToJwk(privKeyFile.Name())
+	jwkPriv, err := RsaPemToJwk(privKeyFile.Name(), jwkAlgRs256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +86,7 @@ func TestRsaPemToJwk_InvalidPemFile(t *testing.T) {
 	}
 
 	// Ensure that an error is returned when given an invalid PEM file
-	if _, err := RsaPemToJwk(invalidPemFile.Name()); err == nil {
+	if _, err := RsaPemToJwk(invalidPemFile.Name(), jwkAlgRs256); err == nil {
 		t.Error("expected error when given invalid PEM file, got nil")
 	}
 }
@@ -134,7 +135,7 @@ func TestRsaPemToJwk_MultipleKeysInPemFile(t *testing.T) {
 	}
 
 	// Convert private keys PEM file to JWK
-	jwkPriv, err := RsaPemToJwk(keysFile.Name())
+	jwkPriv, err := RsaPemToJwk(keysFile.Name(), jwkAlgRs256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +157,7 @@ func TestRsaPemToJwk_MultipleKeysInPemFile(t *testing.T) {
 
 func TestRsaPemToJwk_NonExistentPemFile(t *testing.T) {
 	// Ensure that an error is returned when given a non-existent PEM file
-	if _, err := RsaPemToJwk("non-existent-file.pem"); err == nil {
+	if _, err := RsaPemToJwk("non-existent-file.pem", jwkAlgRs256); err == nil {
 		t.Error("expected error when given non-existent PEM file, got nil")
 	}
 }
@@ -176,7 +177,7 @@ func TestRsaPemToJwk_NonPemFile(t *testing.T) {
 	}
 
 	// Ensure that an error is returned when given a non-PEM file
-	if _, err := RsaPemToJwk(nonPemFile.Name()); err == nil {
+	if _, err := RsaPemToJwk(nonPemFile.Name(), jwkAlgRs256); err == nil {
 		t.Error("expected error when given non-PEM file, got nil")
 	}
 }
@@ -228,7 +229,7 @@ func TestRsaPemToJwk_MultipleKeysPemFile(t *testing.T) {
 	}
 
 	// Convert private keys PEM file to JWK
-	jwkPriv, err := RsaPemToJwk(privKeysPemFile.Name())
+	jwkPriv, err := RsaPemToJwk(privKeysPemFile.Name(), jwkAlgRs256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +271,7 @@ func TestRsaPemToJwk_MultipleKeysPemFile(t *testing.T) {
 }
 
 func TestRsaPemToJwk_NonExistentFile(t *testing.T) {
-	if _, err := RsaPemToJwk("non-existent-file.pem"); err == nil {
+	if _, err := RsaPemToJwk("non-existent-file.pem", jwkAlgRs256); err == nil {
 		t.Error("expected error when given non-existent file, got nil")
 	}
 }
@@ -373,4 +374,145 @@ func TestSafeEncode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRsaPemToJwk_NilFilename(t *testing.T) {
+	_, err := RsaPemToJwk("", jwkAlgRs256)
+	if err == nil {
+		t.Error("expected error when given empty filename, got nil")
+	}
+}
+
+func TestRsaPemToJwk_UnreadableFile(t *testing.T) {
+	// Create an unreadable file
+	file, err := os.CreateTemp("", "unreadable-*.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(file.Name(), 0000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(file.Name())
+
+	_, err = RsaPemToJwk(file.Name(), jwkAlgRs256)
+	if err == nil {
+		t.Error("expected error when given unreadable file, got nil")
+	}
+}
+
+func TestRsaPemToJwk_NotFoundFile(t *testing.T) {
+	_, err := RsaPemToJwk("non-existent-file.pem", jwkAlgRs256)
+	if err == nil {
+		t.Error("expected error when given non-existent file, got nil")
+	}
+}
+
+func TestRsaPemToJwk_InvalidPrivateKey(t *testing.T) {
+	// Create an invalid PEM file (missing BEGIN/END RSA PRIVATE KEY headers)
+	file, err := os.CreateTemp("", "invalid-private-key-*.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(file.Name())
+	if _, err := file.Write([]byte("invalid private key")); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = RsaPemToJwk(file.Name(), jwkAlgRs256)
+	if err == nil {
+		t.Error("expected error when given invalid private key PEM file, got nil")
+	}
+}
+
+func TestCheckPrivKeyRequirements(t *testing.T) {
+	privKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("Error generating private key: %v", err)
+	}
+
+	err = checkPrivKeyRequirements(privKey, jwkAlgRs256)
+	if err == nil {
+		t.Errorf("Expected error for key size too small")
+	}
+
+	privKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("Error generating private key: %v", err)
+	}
+
+	err = checkPrivKeyRequirements(privKey, jwkAlgRs256)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	err = checkPrivKeyRequirements(privKey, "invalid")
+	if err == nil {
+		t.Errorf("Expected error for invalid algorithm")
+	}
+
+	err = checkPrivKeyRequirements(privKey, jwkAlgRs384)
+	if err == nil {
+		t.Errorf("Expected error for key size too small")
+	}
+
+	err = checkPrivKeyRequirements(privKey, jwkAlgRs512)
+	if err == nil {
+		t.Errorf("Expected error for key size too small")
+	}
+}
+
+func TestConvert(t *testing.T) {
+	// create a temporary directory to hold PEM files
+	tempDir, err := os.MkdirTemp("", "pem-to-jwk-*")
+	if err != nil {
+		t.Fatalf("Failed to create temporary directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// create some PEM files with different sizes
+	keySizes := []int{256, 384, 512}
+	for i, size := range keySizes {
+		filename := fmt.Sprintf("key%d.pem", i)
+		fullPath := filepath.Join(tempDir, filename)
+		if err = createPemFile(fullPath, size); err != nil {
+			t.Fatalf("Failed to create PEM file: %v", err)
+		}
+	}
+
+	// call the Convert function with the temporary directory and RS256 algorithm
+	err = Convert(tempDir, jwkAlgRs256)
+	if err != nil {
+		t.Fatalf("Convert failed: %v", err)
+	}
+}
+
+func createPemFile(filename string, keySize int) error {
+	// generate a new private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, keySize*8)
+	if err != nil {
+		return fmt.Errorf("failed to generate private key: %w", err)
+	}
+
+	// encode private key to PEM format
+	pemKey := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	}
+	pemData := pem.EncodeToMemory(pemKey)
+
+	// write to file
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := io.WriteString(file, string(pemData)); err != nil {
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+
+	return nil
 }
