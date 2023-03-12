@@ -25,6 +25,8 @@ const jwkAlgRs384 = "RS384"
 const jwkAlgRs512 = "RS512"
 const jwkUseSig = "sig"
 
+const KeySizeErr = "key size %d is too small for algorithm %s, it should be equal or greater than %d"
+
 type jwkPrivAndPubKeyPair struct {
 	jwkPubKey
 	P  string `json:"p"`
@@ -105,15 +107,15 @@ func checkPrivKeyRequirements(privateKey *rsa.PrivateKey, alg string) error {
 	switch alg {
 	case jwkAlgRs256:
 		if keySize < 256 {
-			err = fmt.Errorf("key size %d is too small for algorithm %s, it should be equal or greater than %d", keySize, alg, 256)
+			err = fmt.Errorf(KeySizeErr, keySize, alg, 256)
 		}
 	case jwkAlgRs384:
 		if keySize < 384 {
-			err = fmt.Errorf("key size %d is too small for algorithm %s, it should be equal or greater than %d", keySize, alg, 384)
+			err = fmt.Errorf(KeySizeErr, keySize, alg, 384)
 		}
 	case jwkAlgRs512:
 		if keySize < 512 {
-			err = fmt.Errorf("key size %d is too small for algorithm %s, it should be equal or greater than %d", keySize, alg, 512)
+			err = fmt.Errorf(KeySizeErr, keySize, alg, 512)
 		}
 	default:
 		err = fmt.Errorf("algorithm %s is not supported", alg)
