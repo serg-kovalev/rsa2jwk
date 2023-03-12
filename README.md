@@ -26,8 +26,28 @@ go build
 ## CLI Usage
 
 ```sh
-rsa2jwk path/to/folder_with_pem
+Usage: rsa2jwk [-a] DIR
+
+Converts Single or Multiple RSA pem to JWK Private and Public sets (json files)
+
+Arguments:
+  DIR          Directory where to lookup PEM files (default ".")
+
+Options:
+  -a, --alg    Algorithm to use for the JWK keys (default "RS256")
 ```
+
+It supports the following algorithms:
+
+- RS256
+- RS384
+- RS512
+
+The tool verifies the private key size according to specification in RFC 7518. Specifically, section 6.3.1 of the RFC defines the required key sizes for each algorithm as follows:
+
+- **RS256**: The key size _MUST be 2048 bits or larger_
+- **RS384**: The key size _MUST be 3072 bits or larger_
+- **RS512**: The key size _MUST be 4096 bits or larger_
 
 ## CLI Usage Example
 
@@ -85,7 +105,7 @@ if err != nil {
 	log.Fatal(err)
 }
 
-jwkPriv, err := rsa2jwk.RsaPemToJwk(filePaths[0])
+jwkPriv, err := rsa2jwk.RsaPemToJwk(filePaths[0], "RS256")
 if err != nil {
 	log.Fatal(err)
 }
