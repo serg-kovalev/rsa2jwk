@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	cli "github.com/jawher/mow.cli"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
@@ -20,6 +21,8 @@ const jsonJwkPubFilename = "rsa2jwk_jwkPublic.json"
 
 const jwkKtyRsa = "RSA"
 const jwkAlgRs256 = "RS256"
+const jwkAlgRs384 = "RS384"
+const jwkAlgRs512 = "RS512"
 const jwkUseSig = "sig"
 
 type jwkPrivAndPubKeyPair struct {
@@ -42,7 +45,7 @@ type jwkPubKey struct {
 }
 
 // RsaPemToJwk converts a PEM file containing an RSA key pair to a JWK private and public key pair.
-func RsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
+func RsaPemToJwk(path, alg string) ([]jwkPrivAndPubKeyPair, error) {
 	jwkPrivSet := []jwkPrivAndPubKeyPair{}
 
 	jwkSet, err := jwk.ReadFile(path, jwk.WithPEM(true))
@@ -60,6 +63,10 @@ func RsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
 		if !ok {
 			return nil, err
 		}
+		if err = checkPrivKeyRequirements(privKey, alg); err != nil {
+			return nil, err
+		}
+
 		pubKey := privKey.Public()
 
 		privJwk, err := jwk.FromRaw(privKey)
@@ -71,7 +78,7 @@ func RsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
 
 		jwkPub := jwkPubKey{
 			Kty: jwkKtyRsa,
-			Alg: jwkAlgRs256,
+			Alg: alg,
 			Use: jwkUseSig,
 			Kid: privJwk.KeyID(),
 			N:   SafeEncode(pubKey.(*rsa.PublicKey).N.Bytes()),
@@ -90,6 +97,29 @@ func RsaPemToJwk(path string) ([]jwkPrivAndPubKeyPair, error) {
 	}
 
 	return jwkPrivSet, nil
+}
+
+func checkPrivKeyRequirements(privateKey *rsa.PrivateKey, alg string) error {
+	var err error
+	keySize := privateKey.Size()
+	switch alg {
+	case jwkAlgRs256:
+		if keySize < 256 {
+			err = fmt.Errorf("key size %d is too small for algorithm %s, it should be equal or greater than %d", keySize, alg, 256)
+		}
+	case jwkAlgRs384:
+		if keySize < 384 {
+			err = fmt.Errorf("key size %d is too small for algorithm %s, it should be equal or greater than %d", keySize, alg, 384)
+		}
+	case jwkAlgRs512:
+		if keySize < 512 {
+			err = fmt.Errorf("key size %d is too small for algorithm %s, it should be equal or greater than %d", keySize, alg, 512)
+		}
+	default:
+		err = fmt.Errorf("algorithm %s is not supported", alg)
+	}
+
+	return err
 }
 
 // MarshalAndSave marshals the given data to JSON and saves it to the specified file.
@@ -131,22 +161,49 @@ func LookupPemFiles(dir string) ([]string, error) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatal("you should provide a path to a directory where to lookup PEM files, e.g. './'")
+	app := cli.App("rsa2jwk", "Converts Single or Multiple RSA pem to JWK Private and Public sets (json files)")
+	app.Spec = "[-a] DIR"
+
+	var (
+		dir = app.StringArg("DIR", ".", "Directory where to lookup PEM files")
+		alg = app.StringOpt("a alg", "RS256", "Algorithm to use for the JWK keys")
+	)
+
+	// Specify the action to execute when the app is invoked correctly
+	app.Action = func() {
+		if err := Convert(*dir, *alg); err != nil {
+			log.Fatal(err)
+		}
 	}
-	dir := os.Args[1]
-	filePaths, err := LookupPemFiles(dir)
+
+	// Invoke the app passing in os.Args
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+// Convert converts PEM files to JWK private and public key pairs
+func Convert(dir, alg string) error {
+	// verify alg is a valid algorithm, one of RS256, RS384, RS512
+	switch alg {
+	case jwkAlgRs256, jwkAlgRs384, jwkAlgRs512:
+	default:
+		log.Fatalf("invalid algorithm, must be one of %s, %s, %s", jwkAlgRs256, jwkAlgRs384, jwkAlgRs512)
+	}
+
+	filePaths, err := LookupPemFiles(dir)
+	if err != nil {
+		return err
 	}
 
 	jwkPrivSet := map[string][]jwkPrivAndPubKeyPair{"keys": {}}
 	jwkPubSet := map[string][]jwkPubKey{"keys": {}}
 	fmt.Printf("%43s\t%s\n", "Kid", "Filename")
 	for _, f := range filePaths {
-		jwkPriv, err := RsaPemToJwk(f)
+		jwkPriv, err := RsaPemToJwk(f, alg)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		for _, jwkPrivAndPub := range jwkPriv {
 			jwkPrivSet["keys"] = append(jwkPrivSet["keys"], jwkPrivAndPub)
@@ -155,9 +212,11 @@ func main() {
 		}
 	}
 	if err := MarshalAndSave(jwkPrivSet, filepath.Join(dir, jsonJwkPrivFilename)); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err := MarshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename)); err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
