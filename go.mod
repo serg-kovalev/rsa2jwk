@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/jawher/mow.cli v1.2.0
-	github.com/lestrrat-go/jwx/v2 v2.0.15
+	github.com/lestrrat-go/jwx/v2 v2.0.16
 )
 
 require (
