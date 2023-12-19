@@ -1,44 +1,44 @@
 on:
   push:
     branches:
-    - main
+      - main
   pull_request:
     branches:
-    - main
+      - main
 
 env:
-  GO_VERSION: '1.20'
-  LINT_VERSION: '1.51.1'
+  GO_VERSION: "1.20"
+  LINT_VERSION: "1.55.2"
 
 name: CI
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ env.GO_VERSION }}.x
-    - name: Run linters
-      uses: golangci/golangci-lint-action@v2
-      with:
-        # Required: the version of golangci-lint is required and must be specified without patch version: they always use the latest patch version.
-        version: v${{ env.LINT_VERSION }}
-        # enable gofmt to check formatting issues
-        args: --enable gofmt
-        # show only new issues if it's a pull request. The default value is `false`.
-        only-new-issues: true
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}.x
+      - name: Run linters
+        uses: golangci/golangci-lint-action@v2
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: they always use the latest patch version.
+          version: v${{ env.LINT_VERSION }}
+          # enable gofmt to check formatting issues
+          args: --enable gofmt
+          # show only new issues if it's a pull request. The default value is `false`.
+          only-new-issues: true
 
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ env.GO_VERSION }}.x
-    - name: Run tests
-      run: go test -count=1  ./...
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}.x
+      - name: Run tests
+        run: go test -count=1  ./...
