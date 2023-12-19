@@ -25,7 +25,7 @@ const jwkAlgRs384 = "RS384"
 const jwkAlgRs512 = "RS512"
 const jwkUseSig = "sig"
 
-const KeySizeErr = "key size %d is too small for algorithm %s, it should be equal or greater than %d"
+const keySizeErr = "key size %d is too small for algorithm %s, it should be equal or greater than %d"
 
 type jwkPrivAndPubKeyPair struct {
 	jwkPubKey
@@ -37,6 +37,9 @@ type jwkPrivAndPubKeyPair struct {
 	Dq string `json:"dq"`
 }
 
+// JwkPrivAndPubKeyPairs returns JWT public and private pairs as a slice
+type JwkPrivAndPubKeyPairs []jwkPrivAndPubKeyPair
+
 type jwkPubKey struct {
 	Kty string `json:"kty"`
 	E   string `json:"e"`
@@ -47,8 +50,8 @@ type jwkPubKey struct {
 }
 
 // RsaPemToJwk converts a PEM file containing an RSA key pair to a JWK private and public key pair.
-func RsaPemToJwk(path, alg string) ([]jwkPrivAndPubKeyPair, error) {
-	jwkPrivSet := []jwkPrivAndPubKeyPair{}
+func RsaPemToJwk(path, alg string) (JwkPrivAndPubKeyPairs, error) {
+	jwkPrivSet := JwkPrivAndPubKeyPairs{}
 
 	jwkSet, err := jwk.ReadFile(path, jwk.WithPEM(true))
 	if err != nil {
@@ -76,9 +79,9 @@ func RsaPemToJwk(path, alg string) ([]jwkPrivAndPubKeyPair, error) {
 			return nil, err
 		}
 		// generates Kid using Key.Thumbprint method with crypto.SHA256
-		jwk.AssignKeyID(privJwk) //nolint:errcheck
+		jwk.AssignKeyID(privJwk) // nolint:errcheck
 
-		jwkPub := jwkPubKey{
+		jwkPub := jwkPubKey{ // nolint:forcetypeassert
 			Kty: jwkKtyRsa,
 			Alg: alg,
 			Use: jwkUseSig,
@@ -107,15 +110,15 @@ func checkPrivKeyRequirements(privateKey *rsa.PrivateKey, alg string) error {
 	switch alg {
 	case jwkAlgRs256:
 		if keySize < 256 {
-			err = fmt.Errorf(KeySizeErr, keySize, alg, 256)
+			err = fmt.Errorf(keySizeErr, keySize, alg, 256)
 		}
 	case jwkAlgRs384:
 		if keySize < 384 {
-			err = fmt.Errorf(KeySizeErr, keySize, alg, 384)
+			err = fmt.Errorf(keySizeErr, keySize, alg, 384)
 		}
 	case jwkAlgRs512:
 		if keySize < 512 {
-			err = fmt.Errorf(KeySizeErr, keySize, alg, 512)
+			err = fmt.Errorf(keySizeErr, keySize, alg, 512)
 		}
 	default:
 		err = fmt.Errorf("algorithm %s is not supported", alg)
@@ -130,12 +133,13 @@ func MarshalAndSave(data interface{}, path string) error {
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(path)
+	file, err := os.Create(path) // nolint: gosec
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 	_, err = file.Write(jsonData)
+
 	return err
 }
 
@@ -154,11 +158,13 @@ func LookupPemFiles(dir string) ([]string, error) {
 		if !info.IsDir() && filepath.Ext(path) == fileExtension {
 			filePaths = append(filePaths, path)
 		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	return filePaths, nil
 }
 
@@ -216,9 +222,6 @@ func Convert(dir, alg string) error {
 	if err := MarshalAndSave(jwkPrivSet, filepath.Join(dir, jsonJwkPrivFilename)); err != nil {
 		return err
 	}
-	if err := MarshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename)); err != nil {
-		return err
-	}
 
-	return nil
+	return MarshalAndSave(jwkPubSet, filepath.Join(dir, jsonJwkPubFilename))
 }
