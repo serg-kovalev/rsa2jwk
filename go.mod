@@ -1,6 +1,6 @@
 module github.com/serg-kovalev/rsa2jwk
 
-go 1.20
+go 1.21
 
 require (
 	github.com/jawher/mow.cli v1.2.0
