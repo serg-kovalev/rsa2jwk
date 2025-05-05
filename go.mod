@@ -6,7 +6,7 @@ toolchain go1.23.8
 
 require (
 	github.com/jawher/mow.cli v1.2.0
-	github.com/lestrrat-go/jwx/v2 v2.1.5
+	github.com/lestrrat-go/jwx/v2 v2.1.6
 )
 
 require (
